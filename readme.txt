@@ -2,7 +2,7 @@ vous êtes un employé (Alice) qui souhaite valider son augmentation mais le dir
 
 Objectif : vous devez augmenter vos privilèges et pouvoir accéder au script dans les fichiers du directeur pour exécuter le script et valider votre augmentation
 
-Vous devez exploiter l'erreur humaine et essayer de passer d'un compte à un autre pour atteindre David
+Vous devez exploiter l'erreur humaine et essayer de passer d'un compte à un autre pour atteindre David et Valider le script
 
 
 
