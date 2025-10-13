@@ -13,7 +13,7 @@ Pour créer le défi  (étapes de l'initialisation)
 
 
 
-1- vous exécutez d'abord creation_Etape_1.sh
+1- vous exécutez d'abord creation_etape_1.sh
  ( Vous devez être un utilisateur root)
 
 2- Passez à Alice et entrer son mot de passe
