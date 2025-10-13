@@ -13,7 +13,7 @@ sudo groupadd CEO
 sudo useradd -m -s /bin/bash -G developpeur alice
 sudo useradd -m -s /bin/bash -G developpeur,administration Bob
 sudo useradd -m -s /bin/bash -G administration Charlie
-sudo useradd -m -s /bin/bash -G CEO
+sudo useradd -m -s /bin/bash -G CEO David
 
 
  # Set Passwords
