@@ -9,7 +9,7 @@ Vous devez exploiter l'erreur humaine et essayer de passer d'un compte à un aut
 
 
 
-Pour créer le défi
+Pour créer le défi  (étapes de l'initialisation)    
 
 
 
