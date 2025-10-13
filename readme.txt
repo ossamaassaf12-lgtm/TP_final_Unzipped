@@ -32,6 +32,8 @@ Pour créer le défi
 6- Passez a David et executez et entrez son mot de passe (A405012) et executez creation_David_1.sh
 
 
+7- Pour vérifier que le CTF fonctionne dans le répertoire Challange nous avons 4 répertoires (administrateurs - alice -Bob -Charlie - David)
+
 le défi est de valider l'augmentation d'Alice sur le compte de David et d'obtenir le flag
 
 
