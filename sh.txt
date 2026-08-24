@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+#
+# install_pentest_tools.sh
+#
+# Installs the tooling listed in the source inventory table onto Ubuntu.
+# Designed for an authorized pentest workstation (Ubuntu 22.04/24.04).
+#
+# Usage:
+#   chmod +x install_pentest_tools.sh
+#   sudo ./install_pentest_tools.sh
+#
+# The script is idempotent-ish: re-running it just re-installs/updates.
+# Tools requiring manual/GUI installers (Burp Suite Pro, Metasploit's
+# official installer, Exegol, Docker) are called out at the end instead
+# of being silently curl-piped — review those sections before running.
+
+set -uo pipefail
+
+TOOLS_DIR="/opt/tools"
+LOG="/var/log/pentest-tools-install.log"
+PIP="pip3 install --break-system-packages --ignore-installed --upgrade"
+
+if [[ $EUID -ne 0 ]]; then
+  echo "Please run as root (sudo ./install_pentest_tools.sh)"
+  exit 1
+fi
+
+mkdir -p "$TOOLS_DIR"
+exec > >(tee -a "$LOG") 2>&1
+
+echo "=== [1/8] apt update & base dependencies ==="
+apt update
+apt install -y --no-install-recommends \
+  build-essential git curl wget unzip gnupg2 software-properties-common \
+  python3 python3-pip \
+  ruby-full ruby-dev \
+  golang-go \
+  gdb \
+  gcc make
+
+echo "=== [2/8] Tools available directly via apt ==="
+# Network / recon / layer 2-3
+apt install -y \
+  nmap netcat-traditional nbtscan netdiscover \
+  dnsutils dnsrecon \
+  snmp snmp-mibs-downloader \
+  sslscan \
+  smbclient \
+  rpcbind rpcbind-utils || true
+
+# Web app testing
+apt install -y \
+  nikto dirbuster wfuzz sqlmap \
+  || true
+
+# Passwords / cracking
+apt install -y hashcat john patator || true
+
+# Wifi / VoIP
+apt install -y aircrack-ng || true
+
+# AD / windows interop
+apt install -y freerdp2-x11 || true
+
+# Forensics / traffic analysis
+apt install -y wireshark tshark bulk-extractor volatility || true
+
+# Misc / workstation utilities
+apt install -y sublime-text gedit terminator zsh docker.io || true
+
+echo "=== [3/8] Python-based tools (plain pip3, no venv) ==="
+PIP_TOOLS=(
+  impacket
+  spiderfoot
+  scapy
+  dnsrecon
+  theHarvester
+  crackmapexec
+  netexec
+  bloodhound-python
+  certipy-ad
+  lazagne
+  wpscan
+  mitm6
+  dnschef
+  findmyhash
+  hash-identifier
+)
+for t in "${PIP_TOOLS[@]}"; do
+  $PIP "$t" || echo "!! pip install failed for $t (check package name/availability)"
+done
+
+echo "=== [5/8] Ruby gems ==="
+gem install \
+  wpscan \
+  arachni \
+  vbscan \
+  evil-winrm \
+  --no-document || true
+
+echo "=== [6/8] Go-based tools ==="
+export GOPATH="/root/go"
+export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+go install github.com/ropnop/kerbrute@latest || true
+go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest || true
+go install github.com/bettercap/bettercap@latest || true
+
+echo "=== [7/8] Git-cloned tools (not packaged) ==="
+declare -A REPOS=(
+  [Sublist3r]="https://github.com/aboul3la/Sublist3r.git"
+  [Instarecon]="https://github.com/kagan-ozer/InstaRecon.git"
+  [Subbrute]="https://github.com/TheRook/subbrute.git"
+  [CMSmap]="https://github.com/Dionach/CMSmap.git"
+  [Droopescan]="https://github.com/droope/droopescan.git"
+  [Commix]="https://github.com/commixproject/commix.git"
+  [dotdotpwn]="https://github.com/wireghoul/dotdotpwn.git"
+  [fimap]="https://github.com/kurobeats/fimap.git"
+  [jSQL]="https://github.com/ron190/jsql-injection.git"
+  [BloodHound]="https://github.com/BloodHoundAD/BloodHound.git"
+  [LinPEAS]="https://github.com/carlospolop/PEASS-ng.git"
+  [Metasploit]="https://github.com/rapid7/metasploit-framework.git"
+  [BeEF]="https://github.com/beefproject/beef.git"
+  [AndroBugs]="https://github.com/AndroBugs/AndroBugs_Framework.git"
+  [Androguard]="https://github.com/androguard/androguard.git"
+  [Androwarn]="https://github.com/maaaaz/androwarn.git"
+  [apktool]="https://github.com/iBotPeaches/Apktool.git"
+  [dex2jar]="https://github.com/pxb1988/dex2jar.git"
+  [jadx]="https://github.com/skylot/jadx.git"
+  [pidcat]="https://github.com/JakeWharton/pidcat.git"
+  [MobSF]="https://github.com/MobSF/Mobile-Security-Framework-MobSF.git"
+  [VoIPHopper]="https://github.com/tetu5s/voiphopper.git"
+  [sipvicious]="https://github.com/EnableSecurity/sipvicious.git"
+  [CapTipper]="https://github.com/omriher/CapTipper.git"
+  [DumpZilla]="https://github.com/Busindre/dumpzilla.git"
+  [origami]="https://github.com/cogentembedded/origami-pdf.git"
+  [asciinema]="https://github.com/asciinema/asciinema.git"
+  [oh-my-zsh]="https://github.com/ohmyzsh/ohmyzsh.git"
+)
+for name in "${!REPOS[@]}"; do
+  dest="$TOOLS_DIR/$name"
+  if [[ -d "$dest" ]]; then
+    echo "-- $name already cloned, pulling latest"
+    git -C "$dest" pull || true
+  else
+    echo "-- cloning $name"
+    git clone --depth 1 "${REPOS[$name]}" "$dest" || echo "!! clone failed for $name"
+  fi
+done
+
+echo "=== [8/8] Done. See manual-install notes below. ==="
+cat <<'EOF'
+
+------------------------------------------------------------
+MANUAL / SPECIAL-CASE INSTALLS (not automated by this script)
+------------------------------------------------------------
+- Burp Suite (Pro or Community): download the .sh installer from
+  https://portswigger.net/burp/releases and run it interactively
+  (it's a GUI installer, license-gated for Pro).
+
+- Metasploit Framework: for the full/official build with msfdb etc.,
+  use Rapid7's installer script rather than the raw git clone above:
+    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o msfinstall
+    chmod +x msfinstall && ./msfinstall
+
+- Docker.io: installed via apt above, but you still need to enable
+  and add your user to the docker group:
+    systemctl enable --now docker
+    usermod -aG docker $SUDO_USER
+
+- Exegol: it's a Docker-based pentest environment, install via pip
+  once Docker is running:
+    pip3 install --break-system-packages --upgrade exegol
+    exegol install
+
+- Network Miner / WinDump / TestSSLServer: Windows-oriented tools;
+  on Ubuntu these typically run under Mono or Wine, or you use their
+  Linux-native equivalents (e.g. tshark/tcpdump instead of WinDump).
+
+- SNMPWalk: installed as part of the `snmp` apt package above
+  (binary is `snmpwalk`).
+
+- gdb: installed above; only needed if the mission scope includes
+  binary/reverse-engineering work.
+
+Tools flagged in your table as "Non présent dans la Kali Linux, à ajouter"
+(mitm6, Sublist3r, CMSmap, Droopescan, Kerbrute, BloodHound, LinPEAS,
+nuclei, NetExec) are handled above via pip/go/git since they aren't
+in standard package repos on any distro, Ubuntu included.
+
+Log of this run: /var/log/pentest-tools-install.log
+------------------------------------------------------------
+EOF
