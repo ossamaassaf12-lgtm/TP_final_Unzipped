@@ -1,6 +1,7 @@
 
 #! /bin/bash
-
+VBoxManage snapshot PentestBase-Ubuntu2404 take "baseline-clean" --description "Ubuntu LTS + full pentest toolset"
+sudo -u auditor VBoxManage registervm /srv/vm-templates/PentestBase-Ubuntu2404/PentestBase-Ubuntu2404.vbox
 
 cd Challange
 mkdir David
